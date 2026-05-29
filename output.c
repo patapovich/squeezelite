@@ -295,7 +295,15 @@ void call_volume_script(unsigned left) {
 	int vol;
 
 	LOCK;
-	if (output.state == OUTPUT_OFF) {
+	// Suppress the -w script in any non-playing state. The primary fix
+	// against LMS's fade-out-then-pause sequence lives in squeezelite-volume
+	// (REQFILE-debounce that swallows the whole ramp); this gate is
+	// belt-and-suspenders for the trailing AUDG=0 LMS sends after the
+	// strm 'p'/power-off transitions and matches the existing OUTPUT_OFF
+	// behaviour for stop/pause.
+	if (output.state == OUTPUT_OFF
+	    || output.state == OUTPUT_STOPPED
+	    || output.state == OUTPUT_PAUSE_FRAMES) {
 		UNLOCK;
 		return;
 	}

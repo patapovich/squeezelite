@@ -295,6 +295,13 @@ void call_volume_script(unsigned left) {
 	int vol;
 
 	LOCK;
+	// With an external -w script the device/script owns attenuation, so
+	// squeezelite itself must pass samples through at unity. Set unity gain
+	// unconditionally here: the first AUDG LMS sends at connect arrives while
+	// output.state is OUTPUT_STOPPED, so gating before this assignment would
+	// leave gainL/R at 0 (from the initial memset) and silence the first track.
+	output.gainL = FIXED_ONE;
+	output.gainR = FIXED_ONE;
 	// Suppress the -w script in any non-playing state. The primary fix
 	// against LMS's fade-out-then-pause sequence lives in squeezelite-volume
 	// (REQFILE-debounce that swallows the whole ramp); this gate is
@@ -311,6 +318,7 @@ void call_volume_script(unsigned left) {
 
 	ldB = 20.0f * log10f((float)left / FIXED_ONE);
 	vol = (int)lroundf((ldB > -72.0f ? 72.0f + ldB : 0.0f) / 72.0f * 100.0f);
+	if (vol > 100) vol = 100;
 	LOG_DEBUG("volume script left: %u ldB: %.1f vol: %u", left, ldB, vol);
 #if defined(_WIN32) || defined(_WIN64)
 	snprintf(cmd, sizeof(cmd), "start /B %s %u", volume_script, vol);
@@ -320,10 +328,6 @@ void call_volume_script(unsigned left) {
 	if (system(cmd) != 0) {
 		LOG_ERROR("external volume script failed: %s", cmd);
 	}
-	LOCK;
-	output.gainL = FIXED_ONE;
-	output.gainR = FIXED_ONE;
-	UNLOCK;
 }
 
 void _checkfade(bool start) {

@@ -1,23 +1,28 @@
 # Contributor: Carl Chave <online@chave.us>
 # Maintainer: Ralph Irving <ralph.irving@gmail.com>
 pkgname=squeezelite
-pkgver=2.0.0.1540
+pkgver=2.0.0.1556
 pkgrel=0
 pkgdesc="Lightweight headless squeezebox player for Lyrion Music Server"
-url="https://github.com/ralph-irving/squeezelite"
+url="https://github.com/patapovich/squeezelite"
 arch="all"
-license="GPL-3.0-or-later3"
-options="!check" # No test suite
-depends="flac alsa-lib faad2-libs mpg123-libs libvorbis libmad soxr openssl opusfile libalac lirc"
-makedepends="flac-dev alsa-lib-dev faad2-dev mpg123-dev libvorbis-dev libmad-dev soxr-dev openssl-dev opusfile-dev opus-dev libalac-dev lirc-dev"
+license="GPL-3.0-or-later"
+options="!check"
+depends="flac alsa-lib faad2-libs mpg123-libs libvorbis libmad soxr openssl opusfile bash"
+makedepends="flac-dev alsa-lib-dev faad2-dev mpg123-dev libvorbis-dev libmad-dev soxr-dev openssl-dev opusfile-dev opus-dev"
 install="$pkgname.pre-install"
 subpackages="$pkgname-doc $pkgname-openrc"
-source="$pkgname-$pkgver.zip::https://github.com/ralph-irving/squeezelite/archive/master.zip load-libtremor-first.patch $pkgname.confd $pkgname.initd"
-builddir="$srcdir/$pkgname-master"
+source="$pkgname-src.zip::https://github.com/patapovich/squeezelite/archive/refs/heads/fix-volume-script-w-option.zip
+    squeezelite-source::https://raw.githubusercontent.com/patapovich/squeezelite-minidsp/main/squeezelite-source
+    squeezelite-volume::https://raw.githubusercontent.com/patapovich/squeezelite-minidsp/main/squeezelite-volume
+    load-libtremor-first.patch
+    $pkgname.confd
+    $pkgname.initd"
+builddir="$srcdir/squeezelite-fix-volume-script-w-option"
 
 build() {
     cd "$builddir"
-    make OPTS="-DRESAMPLE -DDSD -DGPIO -DVISEXPORT -DUSE_SSL -DOPUS -DALAC -DIR -I/usr/include/opus -I/usr/include/alac"
+    make OPTS="-DRESAMPLE -DDSD -DVISEXPORT -DUSE_SSL -DOPUS -DGPIO"
     gcc -Os -fomit-frame-pointer -fcommon -s -o find_servers tools/find_servers.c
     gcc -Os -fomit-frame-pointer -fcommon -s -o alsacap tools/alsacap.c -lasound
 }
@@ -32,9 +37,12 @@ package() {
         "$pkgdir"/usr/bin/find_servers
     install -Dm 644 doc/squeezelite.1 \
         "$pkgdir"/usr/share/man/man1/squeezelite.1
+    install -Dm 755 "$srcdir"/squeezelite-source \
+        "$pkgdir"/usr/bin/squeezelite-source
+    install -Dm 755 "$srcdir"/squeezelite-volume \
+        "$pkgdir"/usr/bin/squeezelite-volume
     install -Dm 644 "$srcdir"/squeezelite.confd \
         "$pkgdir"/etc/conf.d/squeezelite
     install -Dm 755 "$srcdir"/squeezelite.initd \
         "$pkgdir"/etc/init.d/squeezelite
 }
-

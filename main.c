@@ -106,7 +106,7 @@ static void usage(const char *argv0) {
 		   "  -n <name>\t\tSet the player name\n"
 		   "  -N <filename>\t\tStore player name in filename to allow server defined name changes to be shared between servers (not supported with -n)\n"
 		   "  -W\t\t\tRead wave and aiff format from header, ignore server parameters\n"
-		   "  -w <script>\t\tAbsolute path to script to launch on volume commands from LMS (not supported with -V)\n"
+		   "  -w <script>\t\tAbsolute path to script to launch on volume commands from LMS (passes 0-100 as first argument, not supported with -V)\n"
 #if ALSA
 		   "  -p <priority>\t\tSet real time priority of output thread (1-99)\n"
 #endif
@@ -143,7 +143,6 @@ static void usage(const char *argv0) {
 		   "  -L \t\t\tList volume controls for output device\n"
 		   "  -U <control>\t\tUnmute ALSA control and set to full volume (not supported with -V)\n"
 		   "  -V <control>\t\tUse ALSA control for volume adjustment, otherwise use software volume adjustment\n"
-		   "  -w <volume script>\t\tAbsolute path to script that launches on volume commands from LMS (passes 0-100 as first argument, not supported with -V)\n"
 		   "  -X \t\t\tUse linear volume adjustments instead of in terms of dB (only for hardware volume control)\n"
 #endif
 #if LINUX || FREEBSD || SUN
@@ -369,7 +368,7 @@ int main(int argc, char **argv) {
 		char *opt = argv[optind] + 1;
 		if (strstr("oabcCdefmMnNpPrsZw"
 #if ALSA
-				   "UVwO"
+				   "UVO"
 #endif
 				   , opt) && optind < argc - 1) {
 			optarg = argv[optind + 1];
@@ -608,6 +607,10 @@ int main(int argc, char **argv) {
 		case 'V':
 			if (output_mixer) {
 				fprintf(stderr, "-U and -V option should not be used at same time\n");
+				exit(1);
+			}
+			if (volume_script) {
+				fprintf(stderr, "-V and -w options cannot be used at same time\n");
 				exit(1);
 			}
 			output_mixer = optarg;
